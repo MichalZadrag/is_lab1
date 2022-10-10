@@ -1,68 +1,66 @@
 package is_lab1;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-   
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.util.List;
+import java.util.*;
+
 
 public class Main {
 
-	static JTable table = new JTable();
-    static List < String > headers = Arrays.asList(
-        "Producent",
-        "wielkość matrycy",
-        "typ matrycy",
-        "dotykowy ekran",
-        "procesor",
-        "liczba rdzeni fizyczynch",
-        "taktowanie",
-        "RAM",
-        "pojemność dysku",
-        "typ dysku",
-        "karta graficzna",
-        "pamięć karty graficznej",
-        "system operacyjny",
-        "Napęd optyczny");
-    static HashMap <String, String> headerTranslations = new HashMap<>();
-    static HashMap <String, JTextArea> textAreaByHeader = new HashMap<>();
+    static JTable table = new JTable();
+    static List<String> headers = Arrays.asList(
+            "Producent",
+            "wielkość matrycy",
+            "typ matrycy",
+            "dotykowy ekran",
+            "procesor",
+            "liczba rdzeni fizyczynch",
+            "taktowanie",
+            "RAM",
+            "pojemność dysku",
+            "typ dysku",
+            "karta graficzna",
+            "pamięć karty graficznej",
+            "system operacyjny",
+            "Napęd optyczny");
+    static HashMap<String, String> headerTranslations = new HashMap<>();
+    static HashMap<String, JTextArea> textAreaByHeader = new HashMap<>();
+    static List<String> dbColumns = Arrays.asList(
+            "manufacturer",
+            "screen_size",
+            "screen_type",
+            "screen_touchscreen",
+            "processor_name",
+            "processor_physical_cores",
+            "processor_clock_speed",
+            "ram",
+            "disc_storage",
+            "disc_type",
+            "graphic_card_name",
+            "graphic_card_memory",
+            "os",
+            "disc_reader"
+    );
+    private static Vector<String> row = new Vector<String>();
 
     public static void main(String args[]) {
-    	fillHeaderTranslations();
+        fillHeaderTranslations();
         JFrame frame = new JFrame("Integracja systemów - Zadrąg Michał");
 
         JLabel selected_file = new JLabel();
@@ -81,7 +79,6 @@ public class Main {
 
         JButton btn_save_xmlFile = new JButton("Save xml file");
         btn_save_xmlFile.setSize(100, 100);
-
 
 
         JPanel buttonPanel = new JPanel();
@@ -111,7 +108,7 @@ public class Main {
 
         DefaultTableModel initModel = new DefaultTableModel();
 
-        for (String header: headers) {
+        for (String header : headers) {
             initModel.addColumn(header);
         }
         table.setModel(initModel);
@@ -122,13 +119,13 @@ public class Main {
         frame.setVisible(true);
 
 
-		btn_save_xmlFile.addActionListener(new ActionListener() {
+        btn_save_xmlFile.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            	try {
+                try {
                     TableModel model = table.getModel();
                     File f = new File("savedDane.xml");
                     f.createNewFile();
-                    
+
                     FileWriter xml = new FileWriter(f);
                     xml.write("<laptops>" + "\n");
 
@@ -137,7 +134,7 @@ public class Main {
                     howManyChildren.put("processor", 3);
                     howManyChildren.put("disc", 2);
                     howManyChildren.put("graphic_card", 2);
-                    
+
                     HashMap<String, String> parentAfterMarkdown = new HashMap<String, String>();
                     parentAfterMarkdown.put("manufacturer", "screen");
                     parentAfterMarkdown.put("screen", "processor");
@@ -145,49 +142,48 @@ public class Main {
                     parentAfterMarkdown.put("disc", "graphic_card");
 
                     for (int i = 0; i < model.getRowCount(); i++) {
-                    	xml.write("\t<laptop>" + "\n");
-                    	String previousColumnName = "";
-                    	
+                        xml.write("\t<laptop>" + "\n");
+                        String previousColumnName = "";
+
                         HashMap<String, String> valueByKey = new HashMap<String, String>();
                         List<Integer> whichValuesToSkip = new ArrayList<Integer>();
-                        
+
                         String previousColumn = "";
                         for (int j = 0; j < model.getColumnCount(); j++) {
-                        	if(whichValuesToSkip.contains(j)) {
-                        		continue;
-                        	}
-                        	
-                        	String columnName = headerTranslations.get(model.getColumnName(j));
-                        
-							if(parentAfterMarkdown.get(previousColumn) != null) {
-							    xml.write("\t\t<" + parentAfterMarkdown.get(previousColumn) + ">");
+                            if (whichValuesToSkip.contains(j)) {
+                                continue;
+                            }
 
-							    Integer howManyChildrenForThisParent = howManyChildren.get(parentAfterMarkdown.get(previousColumn));
-	                        	if(howManyChildrenForThisParent != null) {
-	                        		for(int o = 0 ; o < howManyChildrenForThisParent; o++) {
-	                        			whichValuesToSkip.add(j+o);
-	                        			String childrenColumnName = headerTranslations.get(model.getColumnName(j+o));
-	                        			xml.write("\n\t\t\t<" + childrenColumnName + ">");
-	                        			String childrenValue = (String) model.getValueAt(i, j+o);
-	                        			if(childrenValue == null) {
-	                        				childrenValue = "";
-	                        			}
-	                        			xml.write(childrenValue + "</" + childrenColumnName + ">");
-	                        		}
-	                        	}
-	                        	xml.write("\n\t\t</" + parentAfterMarkdown.get(previousColumn) + ">\n");   
-	                        	previousColumn = parentAfterMarkdown.get(previousColumn);
-							}else {
-								xml.write("\t\t<" + columnName + ">");
-								String value = (String) model.getValueAt(i, j);
-	                        	if(value == null) {
-	                        		value = "";
-	                        	}
-	                            xml.write(value + "</" + columnName + ">" + "\n");
-	                            previousColumn = columnName;
-							}
+                            String columnName = headerTranslations.get(model.getColumnName(j));
 
-                        	
+                            if (parentAfterMarkdown.get(previousColumn) != null) {
+                                xml.write("\t\t<" + parentAfterMarkdown.get(previousColumn) + ">");
+
+                                Integer howManyChildrenForThisParent = howManyChildren.get(parentAfterMarkdown.get(previousColumn));
+                                if (howManyChildrenForThisParent != null) {
+                                    for (int o = 0; o < howManyChildrenForThisParent; o++) {
+                                        whichValuesToSkip.add(j + o);
+                                        String childrenColumnName = headerTranslations.get(model.getColumnName(j + o));
+                                        xml.write("\n\t\t\t<" + childrenColumnName + ">");
+                                        String childrenValue = (String) model.getValueAt(i, j + o);
+                                        if (childrenValue == null) {
+                                            childrenValue = "";
+                                        }
+                                        xml.write(childrenValue + "</" + childrenColumnName + ">");
+                                    }
+                                }
+                                xml.write("\n\t\t</" + parentAfterMarkdown.get(previousColumn) + ">\n");
+                                previousColumn = parentAfterMarkdown.get(previousColumn);
+                            } else {
+                                xml.write("\t\t<" + columnName + ">");
+                                String value = (String) model.getValueAt(i, j);
+                                if (value == null) {
+                                    value = "";
+                                }
+                                xml.write(value + "</" + columnName + ">" + "\n");
+                                previousColumn = columnName;
+                            }
+
 
                         }
                         xml.write("\t</laptop>\n");
@@ -195,23 +191,23 @@ public class Main {
 
                     xml.write("</laptops>");
                     xml.close();
-                    
-                   
+
+
                 } catch (IOException ex) {
-            		System.out.println("error");
+                    System.out.println("error");
                     System.out.println(ex.getMessage());
                 }
             }
         });
-		
+
         btn_save_textFile.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            	try {
+                try {
 
                     TableModel model = table.getModel();
                     File f = new File("savedDane.txt");
                     f.createNewFile();
-                    
+
                     FileWriter csv = new FileWriter(f);
 
 //                    for (int i = 0; i < model.getColumnCount(); i++) {
@@ -222,29 +218,29 @@ public class Main {
 
                     for (int i = 0; i < model.getRowCount(); i++) {
                         for (int j = 0; j < model.getColumnCount(); j++) {
-                        	String value = (String) model.getValueAt(i,  j);
-                        	if(value == null) {
-                        		value = "";
-                        	}
-                            if(j==2) {
-                            	csv.write(";");
+                            String value = (String) model.getValueAt(i, j);
+                            if (value == null) {
+                                value = "";
                             }
-                        	csv.write(value + ";");
+                            if (j == 2) {
+                                csv.write(";");
+                            }
+                            csv.write(value + ";");
 
                         }
                         csv.write("\n");
                     }
 
                     csv.close();
-                    
-                   
+
+
                 } catch (IOException ex) {
-            		System.out.println("error");
+                    System.out.println("error");
                     System.out.println(ex.getMessage());
                 }
             }
         });
-        
+
         btn_textFile.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 JFileChooser filechooser = new JFileChooser();
@@ -263,15 +259,15 @@ public class Main {
                         InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(filepath));
                         CSVParser csvParser = CSVFormat.EXCEL.withDelimiter(';').parse(inputStreamReader);
 
-                        for (String header: headers) {
+                        for (String header : headers) {
                             csv_data.addColumn(header);
                         }
 
-                        for (CSVRecord csvRecord: csvParser) {
-                            Vector < String > row = new Vector < String > ();
+                        for (CSVRecord csvRecord : csvParser) {
+                            Vector<String> row = new Vector<String>();
                             for (Integer r = 0; r < 15; r++) {
-                                if(r != 2) {
-                                	row.add(csvRecord.get(r));
+                                if (r != 2) {
+                                    row.add(csvRecord.get(r));
                                 }
                             }
                             csv_data.addRow(row);
@@ -301,12 +297,12 @@ public class Main {
 
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 
-                    for (String header: headers) {
+                    for (String header : headers) {
                         xml_data.addColumn(header);
                     }
 
                     try {
-                      
+
 
                         DocumentBuilder db = dbf.newDocumentBuilder();
 
@@ -317,7 +313,7 @@ public class Main {
                             printNote(doc.getChildNodes(), xml_data);
                         }
 
-                        
+
                         table.setModel(xml_data);
                     } catch (Exception ex) {
                         System.out.println(ex.getMessage());
@@ -327,29 +323,10 @@ public class Main {
             }
         });
     }
-    
-    static List < String > dbColumns = Arrays.asList(
-            "manufacturer",
-            "screen_size",
-            "screen_type",
-            "screen_touchscreen",
-            "processor_name",
-            "processor_physical_cores",
-            "processor_clock_speed",
-            "ram",
-            "disc_storage",
-            "disc_type",
-            "graphic_card_name",
-            "graphic_card_memory",
-            "os",
-            "disc_reader"
-            );
-    
-    
-	private static Vector<String> row = new Vector<String>();
+
     private static void printNote(NodeList nodeList, DefaultTableModel xml_data) {
 
-    	for (int count = 0; count < nodeList.getLength(); count++) {
+        for (int count = 0; count < nodeList.getLength(); count++) {
 
             Node tempNode = nodeList.item(count);
 
@@ -357,12 +334,12 @@ public class Main {
             if (tempNode.getNodeType() == Node.ELEMENT_NODE) {
 
                 // get node name and value
-                if(!tempNode.getTextContent().contains("\n")) {
+                if (!tempNode.getTextContent().contains("\n")) {
 
                     row.add(tempNode.getTextContent());
-                    if(tempNode.getNodeName() == "disc_reader") {
-                    	xml_data.addRow(row);
-                    	row = new Vector<String>();
+                    if (tempNode.getNodeName() == "disc_reader") {
+                        xml_data.addRow(row);
+                        row = new Vector<String>();
                     }
                 }
 
@@ -383,24 +360,24 @@ public class Main {
 
             }
 
-    	}
+        }
 
     }
 
-	private static void fillHeaderTranslations() {
-		headerTranslations.put("Producent", "manufacturer");
-		headerTranslations.put("wielkość matrycy", "size");
-		headerTranslations.put("typ matrycy", "type");
-		headerTranslations.put("dotykowy ekran", "touchscreen");
-		headerTranslations.put("procesor", "name");
-		headerTranslations.put("liczba rdzeni fizyczynch", "physical_cores");
-		headerTranslations.put("taktowanie", "clock_speed");
-		headerTranslations.put("RAM", "ram");
-		headerTranslations.put("pojemność dysku", "storage");
-		headerTranslations.put("typ dysku", "type");
-		headerTranslations.put("karta graficzna", "name");
-		headerTranslations.put("pamięć karty graficznej", "memory");
-		headerTranslations.put("system operacyjny", "os");
-		headerTranslations.put("Napęd optyczny", "disc_reader");
-	}
+    private static void fillHeaderTranslations() {
+        headerTranslations.put("Producent", "manufacturer");
+        headerTranslations.put("wielkość matrycy", "size");
+        headerTranslations.put("typ matrycy", "type");
+        headerTranslations.put("dotykowy ekran", "touchscreen");
+        headerTranslations.put("procesor", "name");
+        headerTranslations.put("liczba rdzeni fizyczynch", "physical_cores");
+        headerTranslations.put("taktowanie", "clock_speed");
+        headerTranslations.put("RAM", "ram");
+        headerTranslations.put("pojemność dysku", "storage");
+        headerTranslations.put("typ dysku", "type");
+        headerTranslations.put("karta graficzna", "name");
+        headerTranslations.put("pamięć karty graficznej", "memory");
+        headerTranslations.put("system operacyjny", "os");
+        headerTranslations.put("Napęd optyczny", "disc_reader");
+    }
 }
