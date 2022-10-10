@@ -99,27 +99,6 @@ public class Main {
 
         frame.add(buttonPanel);
 
-        JPanel crudPanel = new JPanel();
-        crudPanel.setLayout(new GridLayout(5,3));
-        crudPanel.setBorder(BorderFactory.createTitledBorder("Adding data form"));
-        
-        for(Integer i = 0; i < headers.size() ; i++) {
-        	String header = headers.get(i);
-        	
-        	JPanel tmpPanel = new JPanel();
-        	tmpPanel.setLayout(new GridLayout(0, 1));
-        	tmpPanel.setBorder(BorderFactory.createTitledBorder(header));
-        	JTextArea tmpArea = new JTextArea();
-        	textAreaByHeader.put(header,  tmpArea);
-        	tmpPanel.add(tmpArea);
-        	crudPanel.add(tmpPanel);
-        }
-        JButton crudButton = new JButton("Add");
-        crudButton.setBackground(Color.BLUE);
-        crudButton.setOpaque(true);
-        crudPanel.add(crudButton);
-        frame.add(crudPanel);
-
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(0, 1));
 
@@ -142,31 +121,7 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        crudButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-            	Vector<String> row = new Vector<String>();
-            	Boolean atLeastOneData = false;
-            	for(String header : headers) {
-            		JTextArea area = textAreaByHeader.get(header);
-            		if(area.getText() != null && area.getText().trim() != "" && !area.getText().isEmpty()) {
-            		
-            			atLeastOneData = true;
-            		}
-            		row.add(area.getText());
-            	}
-            	if(atLeastOneData) {
-            		DefaultTableModel model = (DefaultTableModel) table.getModel();
-            		model.addRow(row);
-                	
-                	table.setModel(model);
-                	for(String header : headers) {
-                		JTextArea area = textAreaByHeader.get(header);
-                		area.setText("");
-                	}
-            	}
-            }
-        });
-        
+
 		btn_save_xmlFile.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
             	try {
